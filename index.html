@@ -64,6 +64,7 @@ body.light-theme .period-alert.danger{background:#fff0f0;border-color:#c00;}
 .period-sub{font-size:11px;color:var(--muted2);margin-top:2px;line-height:1.4;}
 
 .day-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px 0;}
+.day-cards .day-card:last-child:nth-child(odd){grid-column:1 / -1;}
 .day-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
 .day-card.next{border-color:var(--accent);background:var(--done-bg);}
 .day-card.done-card{border-color:var(--done-border);background:var(--done-bg);opacity:0.8;}
@@ -139,11 +140,11 @@ body.light-theme .period-alert.danger{background:#fff0f0;border-color:#c00;}
 .ex-check{width:34px;height:34px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.25s;}
 .ex-card.done .ex-check{background:var(--accent);border-color:var(--accent);color:#000;}
 .ex-info{flex:1;min-width:0;}
-.ex-name{font-size:20px;font-weight:700;line-height:1.3;transition:color 0.2s;}
+.ex-name{font-size:16px;font-weight:700;line-height:1.3;transition:color 0.2s;}
 .ex-card.done .ex-name{color:var(--accent);}
-.ex-meta{font-size:16px;color:var(--muted2);margin-top:3px;}
+.ex-meta{font-size:14px;color:var(--muted2);margin-top:3px;}
 .ex-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
-.ex-tag{display:inline-block;font-size:13px;font-weight:700;letter-spacing:0.8px;padding:3px 8px;border-radius:4px;text-transform:uppercase;cursor:pointer;}
+.ex-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.8px;padding:3px 8px;border-radius:4px;text-transform:uppercase;cursor:pointer;}
 .tag-restpause{background:#1a1040;color:#a78bfa;}
 .tag-dropset{background:#1a0820;color:#f472b6;}
 .tag-biset{background:#001a14;color:#34d399;}
@@ -410,7 +411,7 @@ body.light-theme .tag-normal{background:#e8e8e8;color:#888;}
     <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-progressivo">Progressivo</span></div><div class="tech-item-desc">Aplica em <strong style="color:var(--text)">todas as séries</strong>. Começa mais leve e aumenta o peso a cada série.</div><div class="tech-item-tip">💡 Ex: 40 → 45 → 50 → 55 kg</div></div>
     <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-restpause">Rest-Pause</span></div><div class="tech-item-desc">Séries 1-3 normais. <strong style="color:var(--text)">Só na última:</strong> falha → 15s → 3-4 reps → 15s → 3-4 reps.</div><div class="tech-item-tip">💡 Última série: falha → 15s → 3-4 reps → repete</div></div>
     <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-dropset">Drop Set</span></div><div class="tech-item-desc">Séries 1-3 normais. <strong style="color:var(--text)">Só na última:</strong> falha → reduz 20-30% sem parar → falha → reduz → falha.</div><div class="tech-item-tip">💡 Última: falha 40kg → 28kg → 20kg sem parar</div></div>
-    <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-biset">Biset</span></div><div class="tech-item-desc">Aplica em <strong style="color:var(--text)">todas as séries</strong>. Vai direto do primeiro para o segundo exercício sem descanso.</div><div class="tech-item-tip">💡 Tríceps corda → sem parar → Tríceps francês</div></div>
+    <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-biset">Biset</span></div><div class="tech-item-desc">Aplica em <strong style="color:var(--text)">todas as séries</strong>. Vai direto do primeiro para o segundo exercício sem descanso.</div><div class="tech-item-tip">💡 Rosca alternada → sem parar → Tríceps corda</div></div>
     <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-falha">Falha</span></div><div class="tech-item-desc">Séries 1-3 normais. <strong style="color:var(--text)">Só na última:</strong> até não conseguir mais uma rep com boa técnica.</div><div class="tech-item-tip">💡 Não confunda fadiga com falha muscular real</div></div>
     <div class="tech-item"><div class="tech-item-header"><span class="ex-tag tag-normal">Normal</span></div><div class="tech-item-desc">Aplica em <strong style="color:var(--text)">todas as séries</strong> com 60-90s de descanso entre elas.</div><div class="tech-item-tip">💡 Qualidade do movimento vale mais que o peso</div></div>
   </div>
@@ -549,7 +550,10 @@ const TECH={
   normal:{name:'Normal',tc:'normal',desc:'Todas as séries com 60-90s de descanso. Foco em técnica e contração'},
 };
 
-const DAYS=[
+const PROGRAM_VERSION=2;
+
+// Programa anterior (ABCD) — mantido só para exibir o histórico antigo
+const LEGACY_DAYS=[
   {id:'A',label:'Peito + Tríceps',exercises:[
     {name:'Supino reto máquina articulada',meta:'4 séries · 8-10 reps',tech:'progressivo'},
     {name:'Supino inclinado Smith',meta:'4 séries · 8-10 reps',tech:'restpause'},
@@ -592,6 +596,55 @@ const DAYS=[
   ]},
 ];
 
+// Programa atual: 5 dias (superior/inferior + braços)
+// Seg Superior A · Ter Inferior A · Qua Braços · Qui Inferior B · Sex Superior B
+const DAYS=[
+  {id:'A',label:'Superior A',exercises:[
+    {name:'Supino reto máquina articulada',meta:'3 séries · 8-10 reps',tech:'progressivo'},
+    {name:'Puxada alta supinada',meta:'3 séries · 8-10 reps',tech:'progressivo'},
+    {name:'Supino inclinado Smith',meta:'3 séries · 10-12 reps',tech:'restpause'},
+    {name:'Remada baixa triângulo',meta:'3 séries · 10-12 reps',tech:'normal'},
+    {name:'Elevação lateral halteres',meta:'3 séries · 12-15 reps',tech:'restpause'},
+    {name:'Pullover polia alta',meta:'3 séries · 12 reps',tech:'normal'},
+  ]},
+  {id:'B',label:'Inferior A',exercises:[
+    {name:'Cadeira extensora unilateral',meta:'4 séries · 10-12 reps',tech:'restpause'},
+    {name:'Flexora máquina sentada',meta:'4 séries · 10-12 reps',tech:'normal'},
+    {name:'Flexora vertical unilateral',meta:'3 séries · 12-15 reps',tech:'dropset'},
+    {name:'Cadeira abdutora',meta:'3 séries · 15 reps',tech:'normal'},
+    {name:'Cadeira adutora',meta:'3 séries · 15 reps',tech:'normal'},
+  ]},
+  {id:'C',label:'Braços',exercises:[
+    {name:'Rosca direta halteres alternada',meta:'3 séries · 10-12 reps',tech:'biset'},
+    {name:'Tríceps corda polia alta',meta:'3 séries · 10-12 reps',tech:'biset2'},
+    {name:'Rosca martelo',meta:'3 séries · 10-12 reps',tech:'biset'},
+    {name:'Tríceps testa no cross',meta:'3 séries · 10-12 reps',tech:'biset2'},
+    {name:'Rosca concentrada',meta:'3 séries · 12 reps · drop na última',tech:'biset'},
+    {name:'Tríceps polia barra reta',meta:'3 séries · 12 reps · drop na última',tech:'biset2'},
+  ]},
+  {id:'D',label:'Inferior B',exercises:[
+    {name:'Cadeira extensora unilateral',meta:'4 séries · 12-15 reps',tech:'dropset'},
+    {name:'Flexora vertical unilateral',meta:'4 séries · 10-12 reps',tech:'restpause'},
+    {name:'Flexora máquina sentada',meta:'3 séries · 12 reps',tech:'normal'},
+    {name:'Cadeira abdutora',meta:'3 séries · 15 reps',tech:'normal'},
+    {name:'Cadeira adutora',meta:'3 séries · 15 reps',tech:'normal'},
+  ]},
+  {id:'E',label:'Superior B',exercises:[
+    {name:'Desenvolvimento halteres sentado',meta:'3 séries · 8-10 reps',tech:'progressivo'},
+    {name:'Remada cavalinho articulada',meta:'3 séries · 10-12 reps',tech:'restpause'},
+    {name:'Peck deck (voador)',meta:'3 séries · 12-15 reps',tech:'dropset'},
+    {name:'Pull down corda polia alta',meta:'3 séries · 12 reps',tech:'normal'},
+    {name:'Elevação lateral polia unilateral',meta:'3 séries · 12-15 reps',tech:'dropset'},
+    {name:'Facepull corda polia alta',meta:'3 séries · 15 reps',tech:'normal'},
+    {name:'Crucifixo inverso máquina',meta:'3 séries · 12 reps',tech:'normal'},
+  ]},
+];
+
+// Entradas de histórico sem programId (ou com 1) pertencem ao programa anterior
+function isNew(h){return h&&h.programId===PROGRAM_VERSION;}
+function dayList(h){return isNew(h)?DAYS:LEGACY_DAYS;}
+function dayOf(h){const l=dayList(h);return l[h.dayIdx]||l[0];}
+
 // ══ INDEXEDDB ══
 const DB_NAME='GustavoFitV9',DB_VER=1;
 let db=null;
@@ -614,7 +667,7 @@ function dbPut(store,val){return new Promise((res,rej)=>{const tx=db.transaction
 function dbDelete(store,key){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const req=tx.objectStore(store).delete(key);req.onsuccess=e=>res(e.target.result);req.onerror=e=>rej(e);});}
 function dbGetAll(store){return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=e=>res(e.target.result);req.onerror=e=>rej(e);});}
 
-async function getState(){const s=await dbGet('state','main');return s?s.data:{nextDayIdx:0,viewingDayIdx:0,debt:[],weekGoal:5,lightMode:false};}
+async function getState(){const s=await dbGet('state','main');return s?s.data:{nextDayIdx:0,viewingDayIdx:0,debt:[],weekGoal:5,lightMode:false,programVersion:PROGRAM_VERSION,programStart:new Date().toISOString()};}
 async function setState(data){await dbPut('state',{key:'main',data});}
 async function getActiveTrain(){const s=await dbGet('activeTrain','current');return s?s.data:null;}
 async function setActiveTrain(data){if(data===null)await dbDelete('activeTrain','current');else await dbPut('activeTrain',{key:'current',data});}
@@ -624,12 +677,26 @@ async function setPR(exName,value){await dbPut('prRecords',{key:exName,value});}
 async function seedIfEmpty(){
   const hist=await dbGetAll('historyAuto');
   if(hist.length===0){
-    await dbPut('historyAuto',{id:1,dayIdx:0,completedAt:'2026-04-20T10:30:00.000Z',checked:Array(8).fill(true),weights:Array(8).fill(''),duration:3600});
-    await dbPut('historyAuto',{id:2,dayIdx:1,completedAt:'2026-04-22T11:00:00.000Z',checked:Array(8).fill(true),weights:Array(8).fill(''),duration:3600});
-    await dbPut('historyAuto',{id:3,dayIdx:2,completedAt:'2026-04-23T11:00:00.000Z',checked:Array(9).fill(true),weights:Array(9).fill(''),duration:3600});
-    await dbPut('historyAuto',{id:4,dayIdx:3,completedAt:'2026-04-25T11:00:00.000Z',checked:Array(7).fill(true),weights:Array(7).fill(''),duration:3600});
+    await dbPut('historyAuto',{id:1,programId:1,dayIdx:0,completedAt:'2026-04-20T10:30:00.000Z',checked:Array(8).fill(true),weights:Array(8).fill(''),duration:3600});
+    await dbPut('historyAuto',{id:2,programId:1,dayIdx:1,completedAt:'2026-04-22T11:00:00.000Z',checked:Array(8).fill(true),weights:Array(8).fill(''),duration:3600});
+    await dbPut('historyAuto',{id:3,programId:1,dayIdx:2,completedAt:'2026-04-23T11:00:00.000Z',checked:Array(9).fill(true),weights:Array(9).fill(''),duration:3600});
+    await dbPut('historyAuto',{id:4,programId:1,dayIdx:3,completedAt:'2026-04-25T11:00:00.000Z',checked:Array(7).fill(true),weights:Array(7).fill(''),duration:3600});
     await setState({nextDayIdx:0,viewingDayIdx:0,debt:[],weekGoal:5,lightMode:false});
   }
+}
+
+async function migrateProgram(){
+  const s=await getState();
+  if(s.programVersion!==PROGRAM_VERSION){
+    const hist=await dbGetAll('historyAuto');
+    for(const h of hist){ if(h.programId===undefined){h.programId=1;await dbPut('historyAuto',h);} }
+    s.programVersion=PROGRAM_VERSION;
+    s.programStart=new Date().toISOString();
+    s.nextDayIdx=0;s.viewingDayIdx=0;s.debt=[];
+    await setState(s);
+  }
+  const at=await getActiveTrain();
+  if(at&&at.programId!==PROGRAM_VERSION) await setActiveTrain(null);
 }
 
 // ══ THEME ══
@@ -661,7 +728,7 @@ function calcStreak(hist){
   let s=1;for(let i=1;i<sorted.length;i++){const diff=(new Date(sorted[i-1].completedAt)-new Date(sorted[i].completedAt))/86400000;if(diff<=2)s++;else break;}
   return s;
 }
-function calcNextDayIdx(hist){if(!hist.length)return 0;const last=[...hist].sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));return(last[last.length-1].dayIdx+1)%DAYS.length;}
+function calcNextDayIdx(hist){const cur=hist.filter(isNew);if(!cur.length)return 0;const last=[...cur].sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));return(last[last.length-1].dayIdx+1)%DAYS.length;}
 function fmtDuration(secs){const m=Math.floor(secs/60),s=secs%60;return `${m}min${s>0?' '+s+'s':''}`;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
@@ -694,9 +761,8 @@ async function renderHome(){
 
   // Period alert
   const alert=document.getElementById('periodAlert');
-  if(hist.length){
-    const sorted=[...hist].sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));
-    const first=new Date(sorted[0].completedAt);
+  if(state.programStart){
+    const first=new Date(state.programStart);
     const weeks=Math.floor((new Date()-first)/(7*86400000));
     if(weeks>=12){alert.className='period-alert danger show';document.getElementById('periodIcon').textContent='🔴';document.getElementById('periodTitle').textContent='Hora de renovar o treino!';document.getElementById('periodSub').textContent=`${weeks} semanas de programa. Vamos montar um novo ciclo!`;}
     else if(weeks>=8){alert.className='period-alert warn show';document.getElementById('periodIcon').textContent='🟡';document.getElementById('periodTitle').textContent='Considere trocar alguns exercícios';document.getElementById('periodSub').textContent=`${weeks} semanas — substitua 2-3 exercícios por grupo.`;}
@@ -706,7 +772,7 @@ async function renderHome(){
   // Day cards
   document.getElementById('dayCards').innerHTML=DAYS.map((d,i)=>{
     const isNext=i===nextIdx,isActiveDay=at&&at.dayIdx===i;
-    const isDone=!isActiveDay&&hist.some(h=>h.dayIdx===i&&isThisWeek(h.completedAt));
+    const isDone=!isActiveDay&&hist.some(h=>isNew(h)&&h.dayIdx===i&&isThisWeek(h.completedAt));
     const isDebt=state.debt&&state.debt.some(db=>db.dayIdx===i);
     let cls='day-card',badge='';
     if(isNext){cls+=' next';badge=`<span class="day-card-badge badge-next">${isActiveDay?'▶ ATIVO':'PRÓXIMO'}</span>`;}
@@ -751,10 +817,10 @@ async function renderHome(){
   const rel=document.getElementById('recentList');
   if(!rec.length){rel.innerHTML='<div style="padding:18px;text-align:center;color:var(--muted2);font-size:13px">Nenhum treino ainda. Bora! 💪</div>';return;}
   rel.innerHTML=rec.map(h=>{
-    const day=DAYS[h.dayIdx];
+    const day=dayOf(h);
     const pct=Math.round(h.checked.filter(Boolean).length/h.checked.length*100);
     const dur=h.duration?fmtDuration(h.duration):'';
-    return `<div class="recent-item"><div class="recent-left"><div class="recent-badge-box">${day.id}</div><div><div class="recent-name">${day.label}</div><div class="recent-date">${fmtDate(h.completedAt)}${dur?' · '+dur:''}</div></div></div><div class="recent-pct">${pct}%</div></div>`;
+    return `<div class="recent-item"><div class="recent-left"><div class="recent-badge-box">${day.id}</div><div><div class="recent-name">${day.label}${isNew(h)?'':' <span style="font-size:10px;color:var(--muted2);font-weight:500">(programa anterior)</span>'}</div><div class="recent-date">${fmtDate(h.completedAt)}${dur?' · '+dur:''}</div></div></div><div class="recent-pct">${pct}%</div></div>`;
   }).join('');
 }
 
@@ -773,7 +839,7 @@ async function startTrain(){
   let at=await getActiveTrain();
   if(!at){
     const s=await getState();const dayIdx=s.nextDayIdx,day=DAYS[dayIdx];
-    at={dayIdx,checked:day.exercises.map(()=>false),weights:day.exercises.map(()=>''),expanded:day.exercises.map(()=>false),techVisible:day.exercises.map(()=>false),startedAt:new Date().toISOString()};
+    at={programId:PROGRAM_VERSION,dayIdx,checked:day.exercises.map(()=>false),weights:day.exercises.map(()=>''),expanded:day.exercises.map(()=>false),techVisible:day.exercises.map(()=>false),startedAt:new Date().toISOString()};
     await setActiveTrain(at);s.viewingDayIdx=dayIdx;await setState(s);
   }
   await showScreen('train');
@@ -808,7 +874,7 @@ async function renderTrain(){
   document.getElementById('trainDaySub').textContent=vd.label;
 
   document.getElementById('trainTabs').innerHTML=DAYS.map((d,i)=>{
-    const isNT=i===nextIdx,isDT=hist.some(h=>h.dayIdx===i&&isThisWeek(h.completedAt)),isVT=i===vi;
+    const isNT=i===nextIdx,isDT=hist.some(h=>isNew(h)&&h.dayIdx===i&&isThisWeek(h.completedAt)),isVT=i===vi;
     let cls='ttab';if(isNT)cls+=' nxt';else if(isDT)cls+=' dne';if(isVT)cls+=' cur';
     return `<button class="${cls}" onclick="switchViewDay(${i})">${d.id}</button>`;
   }).join('');
@@ -899,7 +965,7 @@ async function finishTrain(){
   const day=DAYS[at.dayIdx];
   const duration=Math.floor((Date.now()-new Date(at.startedAt).getTime())/1000);
   clearInterval(trainTimerInt);
-  await dbPut('historyAuto',{dayIdx:at.dayIdx,completedAt:new Date().toISOString(),checked:at.checked,weights:at.weights,duration});
+  await dbPut('historyAuto',{programId:PROGRAM_VERSION,dayIdx:at.dayIdx,completedAt:new Date().toISOString(),checked:at.checked,weights:at.weights,duration});
   // Update PRs
   for(let i=0;i<day.exercises.length;i++){
     if(at.weights[i]&&parseFloat(at.weights[i])>0){
@@ -969,7 +1035,7 @@ async function renderCalendar(){
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   const today=new Date();
   const trainMap={};
-  hist.forEach(h=>{const d=new Date(h.completedAt);if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const key=d.getDate();if(!trainMap[key])trainMap[key]=[];trainMap[key].push({dayIdx:h.dayIdx,id:h.id});}});
+  hist.forEach(h=>{const d=new Date(h.completedAt);if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const key=d.getDate();if(!trainMap[key])trainMap[key]=[];trainMap[key].push({programId:h.programId,dayIdx:h.dayIdx,id:h.id});}});
 
   let cells='';
   for(let i=0;i<firstDay;i++)cells+=`<div class="cal-cell"></div>`;
@@ -977,7 +1043,7 @@ async function renderCalendar(){
     const isToday=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
     const trains=trainMap[d]||[];
     const hasTrain=trains.length>0;
-    const letters=trains.map(t=>DAYS[t.dayIdx].id).join('/');
+    const letters=trains.map(t=>dayOf(t).id).join('/');
     cells+=`<div class="cal-cell ${isToday?'today':''} ${hasTrain?'has-train':''} ${calEditMode?'editable':''}" ${calEditMode?`onclick="openEditCal(${d})"`:''}>
       ${d}${hasTrain?`<div class="cal-train-letter">${letters}</div>`:''}
     </div>`;
@@ -1044,7 +1110,7 @@ async function openEditCal(day){
 }
 async function addCalDay(dayIdx){
   const date=new Date(calYear,calMonth,calEditDate,10,0,0);const day=DAYS[dayIdx];
-  await dbPut('historyAuto',{dayIdx,completedAt:date.toISOString(),checked:Array(day.exercises.length).fill(true),weights:Array(day.exercises.length).fill(''),duration:3600});
+  await dbPut('historyAuto',{programId:PROGRAM_VERSION,dayIdx,completedAt:date.toISOString(),checked:Array(day.exercises.length).fill(true),weights:Array(day.exercises.length).fill(''),duration:3600});
   closeEditCal();await renderCalendar();
 }
 async function removeCalDay(){
@@ -1079,13 +1145,13 @@ async function renderHistory(){
 
   if(!sorted.length){el.innerHTML='<div style="padding:30px;text-align:center;color:var(--muted2);font-size:13px">Nenhum treino ainda.</div>';return;}
   el.innerHTML=sorted.map(h=>{
-    const day=DAYS[h.dayIdx];
+    const day=dayOf(h);
     const pct=Math.round(h.checked.filter(Boolean).length/h.checked.length*100);
     const rows=day.exercises.map((ex,i)=>h.weights[i]?`<div class="history-weight-row"><span class="history-weight-name">${ex.name}</span><span class="history-weight-val">${h.weights[i]} kg</span></div>`:'').filter(Boolean).join('');
     const dur=h.duration?fmtDuration(h.duration):'';
     return `<div class="history-item ${histEditMode?'editable':''}" onclick="${histEditMode?`openEditHist(${h.id})`:''}">
       <div class="history-item-top">
-        <div class="history-item-left"><div class="history-badge">${day.id}</div><div><div class="history-name">${day.label}</div><div class="history-sub">${fmtDate(h.completedAt)}${dur?' · '+dur:''}</div></div></div>
+        <div class="history-item-left"><div class="history-badge">${day.id}</div><div><div class="history-name">${day.label}${isNew(h)?'':' <span style="font-size:10px;color:var(--muted2);font-weight:500">(programa anterior)</span>'}</div><div class="history-sub">${fmtDate(h.completedAt)}${dur?' · '+dur:''}</div></div></div>
         <div style="display:flex;align-items:center;gap:7px;"><div class="history-pct">${pct}%</div><div class="history-edit-icon">✏️</div></div>
       </div>
       ${rows?`<div class="history-weights">${rows}</div>`:''}
@@ -1094,16 +1160,17 @@ async function renderHistory(){
 }
 async function openEditHist(id){
   editingHistId=id;const hist=await dbGetAll('historyAuto');const h=hist.find(x=>x.id===id);if(!h)return;
-  const day=DAYS[h.dayIdx];
+  const day=dayOf(h);
   document.getElementById('editHistSub').textContent=`${day.label} — ${fmtDate(h.completedAt)}`;
   document.getElementById('eh_date').value=toDatetimeLocal(h.completedAt);
+  document.getElementById('eh_day').innerHTML=dayList(h).map((d,i)=>`<option value="${i}">${d.id} — ${d.label}</option>`).join('');
   document.getElementById('eh_day').value=h.dayIdx;
   document.getElementById('eh_exlist').innerHTML=day.exercises.map((ex,i)=>`<div class="ex-check-item"><input type="checkbox" id="ehex${i}" ${h.checked[i]?'checked':''}><label for="ehex${i}">${ex.name}</label></div>`).join('');
   document.getElementById('editHistModal').classList.add('show');
 }
 async function saveEditHist(){
   const hist=await dbGetAll('historyAuto');const h=hist.find(x=>x.id===editingHistId);if(!h)return;
-  const newDayIdx=parseInt(document.getElementById('eh_day').value);const newDay=DAYS[newDayIdx];
+  const newDayIdx=parseInt(document.getElementById('eh_day').value);const newDay=dayList(h)[newDayIdx];
   const checked=Array.from(document.querySelectorAll('#eh_exlist input[type=checkbox]')).map(cb=>cb.checked);
   h.completedAt=new Date(document.getElementById('eh_date').value).toISOString();
   h.dayIdx=newDayIdx;h.checked=checked.slice(0,newDay.exercises.length);
@@ -1211,7 +1278,7 @@ function drawLineChart(id,labels,data,label,color){
 // ══ INIT ══
 async function init(){
   try{
-    await initDB();await seedIfEmpty();
+    await initDB();await seedIfEmpty();await migrateProgram();
     const state=await getState();
     autoTheme(state.lightMode);
     document.getElementById('dbLoading').style.display='none';
