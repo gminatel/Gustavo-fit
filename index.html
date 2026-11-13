@@ -550,7 +550,7 @@ const TECH={
   normal:{name:'Normal',tc:'normal',desc:'Todas as séries com 60-90s de descanso. Foco em técnica e contração'},
 };
 
-const PROGRAM_VERSION=2;
+const PROGRAM_VERSION=3;
 
 // Programa anterior (ABCD) — mantido só para exibir o histórico antigo
 const LEGACY_DAYS=[
@@ -596,9 +596,8 @@ const LEGACY_DAYS=[
   ]},
 ];
 
-// Programa atual: 5 dias (superior/inferior + braços)
-// Seg Superior A · Ter Inferior A · Qua Braços · Qui Inferior B · Sex Superior B
-const DAYS=[
+// Programa v2 (5 dias, ordem anterior) — mantido só para exibir histórico
+const DAYS_V2=[
   {id:'A',label:'Superior A',exercises:[
     {name:'Supino reto máquina articulada',meta:'3 séries · 8-10 reps',tech:'progressivo'},
     {name:'Puxada alta supinada',meta:'3 séries · 8-10 reps',tech:'progressivo'},
@@ -640,9 +639,55 @@ const DAYS=[
   ]},
 ];
 
-// Entradas de histórico sem programId (ou com 1) pertencem ao programa anterior
+// Programa atual (v3): 5 dias, pernas longe da fisio (seg/sex à noite)
+// Seg Superior A · Ter Braços · Qua Inferior A · Qui Superior B · Sex descanso/fisio · Sáb Inferior B
+const DAYS=[
+  {id:'A',label:'Superior A',exercises:[
+    {name:'Supino reto máquina articulada',meta:'3 séries · 8-10 reps',tech:'progressivo'},
+    {name:'Puxada alta supinada',meta:'3 séries · 8-10 reps',tech:'progressivo'},
+    {name:'Supino inclinado Smith',meta:'3 séries · 10-12 reps',tech:'restpause'},
+    {name:'Remada baixa triângulo',meta:'3 séries · 10-12 reps',tech:'normal'},
+    {name:'Elevação lateral halteres',meta:'4 séries · 12-15 reps',tech:'restpause'},
+    {name:'Pullover polia alta',meta:'3 séries · 12 reps',tech:'normal'},
+    {name:'Cross over polia baixa',meta:'3 séries · 12-15 reps',tech:'normal'},
+  ]},
+  {id:'B',label:'Braços',exercises:[
+    {name:'Rosca direta halteres alternada',meta:'3 séries · 10-12 reps',tech:'biset'},
+    {name:'Tríceps corda polia alta',meta:'3 séries · 10-12 reps',tech:'biset2'},
+    {name:'Rosca martelo',meta:'3 séries · 10-12 reps',tech:'biset'},
+    {name:'Tríceps testa no cross',meta:'3 séries · 10-12 reps',tech:'biset2'},
+    {name:'Rosca concentrada',meta:'3 séries · 12 reps · drop na última',tech:'biset'},
+    {name:'Tríceps polia barra reta',meta:'3 séries · 12 reps · drop na última',tech:'biset2'},
+  ]},
+  {id:'C',label:'Inferior A',exercises:[
+    {name:'Cadeira extensora unilateral',meta:'4 séries · 10-12 reps',tech:'restpause'},
+    {name:'Flexora máquina sentada',meta:'3 séries · 10-12 reps',tech:'normal'},
+    {name:'Flexora vertical unilateral',meta:'2 séries · 12-15 reps',tech:'dropset'},
+    {name:'Cadeira abdutora',meta:'3 séries · 15 reps',tech:'normal'},
+    {name:'Cadeira adutora',meta:'3 séries · 15 reps',tech:'normal'},
+  ]},
+  {id:'D',label:'Superior B',exercises:[
+    {name:'Desenvolvimento halteres sentado',meta:'3 séries · 8-10 reps',tech:'progressivo'},
+    {name:'Puxada alta pegada neutra',meta:'3 séries · 10-12 reps',tech:'normal'},
+    {name:'Remada cavalinho articulada',meta:'3 séries · 10-12 reps',tech:'restpause'},
+    {name:'Peck deck (voador)',meta:'3 séries · 12-15 reps',tech:'dropset'},
+    {name:'Pull down corda polia alta',meta:'3 séries · 12 reps',tech:'normal'},
+    {name:'Elevação lateral polia unilateral',meta:'4 séries · 12-15 reps',tech:'dropset'},
+    {name:'Facepull corda polia alta',meta:'3 séries · 15 reps',tech:'normal'},
+    {name:'Crucifixo inverso máquina',meta:'3 séries · 12 reps',tech:'normal'},
+  ]},
+  {id:'E',label:'Inferior B',exercises:[
+    {name:'Cadeira extensora unilateral',meta:'4 séries · 12-15 reps',tech:'dropset'},
+    {name:'Flexora vertical unilateral',meta:'3 séries · 10-12 reps',tech:'restpause'},
+    {name:'Flexora máquina sentada',meta:'2 séries · 12 reps',tech:'normal'},
+    {name:'Cadeira abdutora',meta:'3 séries · 15 reps',tech:'normal'},
+    {name:'Cadeira adutora',meta:'3 séries · 15 reps',tech:'normal'},
+  ]},
+];
+
+// Entradas sem programId (ou 1) = ABCD antigo; programId 2 = 5 dias v2; 3 = atual
 function isNew(h){return h&&h.programId===PROGRAM_VERSION;}
-function dayList(h){return isNew(h)?DAYS:LEGACY_DAYS;}
+function dayList(h){return h&&h.programId===3?DAYS:(h&&h.programId===2?DAYS_V2:LEGACY_DAYS);}
 function dayOf(h){const l=dayList(h);return l[h.dayIdx]||l[0];}
 
 // ══ INDEXEDDB ══
@@ -690,8 +735,8 @@ async function migrateProgram(){
   if(s.programVersion!==PROGRAM_VERSION){
     const hist=await dbGetAll('historyAuto');
     for(const h of hist){ if(h.programId===undefined){h.programId=1;await dbPut('historyAuto',h);} }
+    if(!(s.programVersion===2&&s.programStart)) s.programStart=new Date().toISOString();
     s.programVersion=PROGRAM_VERSION;
-    s.programStart=new Date().toISOString();
     s.nextDayIdx=0;s.viewingDayIdx=0;s.debt=[];
     await setState(s);
   }
@@ -728,7 +773,19 @@ function calcStreak(hist){
   let s=1;for(let i=1;i<sorted.length;i++){const diff=(new Date(sorted[i-1].completedAt)-new Date(sorted[i].completedAt))/86400000;if(diff<=2)s++;else break;}
   return s;
 }
-function calcNextDayIdx(hist){const cur=hist.filter(isNew);if(!cur.length)return 0;const last=[...cur].sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));return(last[last.length-1].dayIdx+1)%DAYS.length;}
+// Próximo treino = sequência normal; treinos feitos por TROCA (swap) não avançam a fila,
+// e quando a fila chega num dia já feito por troca, ele é pulado.
+function calcNextDayIdx(hist){
+  const cur=hist.filter(isNew).sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));
+  if(!cur.length)return 0;
+  const n=DAYS.length,skip=new Set();let ptr=0;
+  const hop=()=>{let g=0;while(skip.has(ptr)&&g++<n){skip.delete(ptr);ptr=(ptr+1)%n;}};
+  for(const h of cur){
+    if(h.swap){skip.add(h.dayIdx);continue;}
+    ptr=(h.dayIdx+1)%n;hop();
+  }
+  return ptr;
+}
 function fmtDuration(secs){const m=Math.floor(secs/60),s=secs%60;return `${m}min${s>0?' '+s+'s':''}`;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
@@ -778,7 +835,7 @@ async function renderHome(){
     if(isNext){cls+=' next';badge=`<span class="day-card-badge badge-next">${isActiveDay?'▶ ATIVO':'PRÓXIMO'}</span>`;}
     else if(isDebt){badge=`<span class="day-card-badge badge-debt">DÉBITO</span>`;}
     else if(isDone){cls+=' done-card';badge=`<span class="day-card-badge badge-done">✓</span>`;}
-    else{cls+=' locked';badge=`<span class="day-card-badge badge-locked">🔒</span>`;}
+    else{cls+=' locked';badge=`<span class="day-card-badge badge-locked">🔄</span>`;}
     return `<div class="${cls}" onclick="viewDayFromHome(${i})">${badge}<div class="day-card-letter">${d.id}</div><div class="day-card-name">${d.label}</div><div class="day-card-count">${d.exercises.length} exercícios</div></div>`;
   }).join('');
 
@@ -835,11 +892,15 @@ function openGoalModal(){
 async function setGoal(n){const s=await getState();s.weekGoal=n;await setState(s);closeGoalModal();await renderHome();showToast(`Meta: ${n} treinos por semana ✓`);}
 function closeGoalModal(){document.getElementById('goalModal').classList.remove('show');}
 
-async function startTrain(){
+async function startTrain(forceIdx){
   let at=await getActiveTrain();
+  const hasForce=typeof forceIdx==='number';
+  if(at&&hasForce&&at.dayIdx!==forceIdx){showToast(`Finalize ou abandone o Treino ${DAYS[at.dayIdx].id} antes de trocar`);return;}
   if(!at){
-    const s=await getState();const dayIdx=s.nextDayIdx,day=DAYS[dayIdx];
-    at={programId:PROGRAM_VERSION,dayIdx,checked:day.exercises.map(()=>false),weights:day.exercises.map(()=>''),expanded:day.exercises.map(()=>false),techVisible:day.exercises.map(()=>false),startedAt:new Date().toISOString()};
+    const s=await getState();const hist=await dbGetAll('historyAuto');
+    const nextIdx=calcNextDayIdx(hist);
+    const dayIdx=hasForce?forceIdx:nextIdx,day=DAYS[dayIdx];
+    at={programId:PROGRAM_VERSION,swap:dayIdx!==nextIdx,dayIdx,checked:day.exercises.map(()=>false),weights:day.exercises.map(()=>''),expanded:day.exercises.map(()=>false),techVisible:day.exercises.map(()=>false),startedAt:new Date().toISOString()};
     await setActiveTrain(at);s.viewingDayIdx=dayIdx;await setState(s);
   }
   await showScreen('train');
@@ -880,7 +941,10 @@ async function renderTrain(){
   }).join('');
 
   const ln=document.getElementById('lockedNotice');
-  if(isViewOnly){ln.textContent=`🔒 Modo consulta — complete o Treino ${DAYS[nextIdx].id} para desbloquear.`;ln.classList.add('show');}
+  const btnCss="display:block;width:100%;margin-top:8px;padding:11px;border:none;border-radius:9px;background:var(--accent);color:#000;font-weight:700;font-size:13px;";
+  if(isViewOnly&&at){ln.innerHTML=`🔒 Treino ${DAYS[at.dayIdx].id} em andamento — finalize ou abandone (✕) para trocar.`;ln.classList.add('show');}
+  else if(isViewOnly){ln.innerHTML=`🔄 O próximo da fila é o Treino ${DAYS[nextIdx].id}. Quer fazer o ${vd.id} hoje? O ${DAYS[nextIdx].id} continua como próximo.<button style="${btnCss}" onclick="startTrain(${vi})">▶ Treinar ${vd.id} — ${vd.label} hoje (troca)</button>`;ln.classList.add('show');}
+  else if(isNext&&!at){ln.innerHTML=`<button style="${btnCss}margin-top:0" onclick="startTrain(${vi})">▶ Iniciar Treino ${vd.id} — ${vd.label}</button>`;ln.classList.add('show');}
   else ln.classList.remove('show');
 
   const checked=isActive?at.checked:vd.exercises.map(()=>false);
@@ -965,7 +1029,7 @@ async function finishTrain(){
   const day=DAYS[at.dayIdx];
   const duration=Math.floor((Date.now()-new Date(at.startedAt).getTime())/1000);
   clearInterval(trainTimerInt);
-  await dbPut('historyAuto',{programId:PROGRAM_VERSION,dayIdx:at.dayIdx,completedAt:new Date().toISOString(),checked:at.checked,weights:at.weights,duration});
+  await dbPut('historyAuto',{programId:PROGRAM_VERSION,swap:!!at.swap,dayIdx:at.dayIdx,completedAt:new Date().toISOString(),checked:at.checked,weights:at.weights,duration});
   // Update PRs
   for(let i=0;i<day.exercises.length;i++){
     if(at.weights[i]&&parseFloat(at.weights[i])>0){
