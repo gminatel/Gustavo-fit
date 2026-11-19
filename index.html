@@ -25,14 +25,17 @@ body.light-theme {
   --done-bg:#efffdc;--done-border:#7ab830;--shadow:rgba(0,0,0,0.1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;padding-top:env(safe-area-inset-top,0px);transition:background 0.3s,color 0.3s;}
+html{height:100%;}
+body{position:fixed;inset:0;display:flex;flex-direction:column;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;padding-top:env(safe-area-inset-top,0px);transition:background 0.3s,color 0.3s;}
 button,input,select,textarea{font-family:'DM Sans',sans-serif;font-size:16px;}
 
-.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:80px;}
+.screen{display:none;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:0;}
+.screen:not(#trainScreen){padding-bottom:16px;}
 .screen.active{display:flex;}
+.screen>*{flex-shrink:0;}
 
 /* NAV */
-.nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);}
+.nav{position:relative;flex:0 0 auto;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;background:transparent;border:none;color:var(--muted2);font-size:9px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;transition:color 0.2s;}
 .nav-btn.active{color:var(--accent);}
 .nav-icon{font-size:18px;line-height:1;}
@@ -170,7 +173,7 @@ body.light-theme .tag-normal{background:#e8e8e8;color:#888;}
 .pr-hint span{color:#c084fc;font-weight:700;}
 .rest-btn{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted2);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;}
 .ex-expand-btn{width:100%;padding:7px;background:transparent;border:none;border-top:1px solid var(--border);color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
-.finish-bar{position:fixed;bottom:64px;left:0;right:0;padding:7px 16px;background:var(--bg);border-top:1px solid var(--border);}
+.finish-bar{position:sticky;bottom:0;z-index:50;margin-top:auto;padding:7px 16px;background:var(--bg);border-top:1px solid var(--border);}
 .finish-bar-btn{width:100%;padding:13px;border-radius:13px;background:var(--accent);color:#000;border:none;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 .finish-bar-btn:disabled{opacity:0.25;}
 
@@ -358,7 +361,7 @@ body.light-theme .tag-normal{background:#e8e8e8;color:#888;}
   <div class="train-tabs" id="trainTabs"></div>
   <div class="locked-notice" id="lockedNotice"></div>
   <div class="exercise-list" id="exerciseList"></div>
-  <div style="height:110px"></div>
+  <div style="height:12px"></div>
   <div class="finish-bar"><button class="finish-bar-btn" id="finishBtn" onclick="finishTrain()" disabled>Finalizar Treino</button></div>
 </div>
 
@@ -793,7 +796,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 async function showScreen(name){
   document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById(name+'Screen').classList.add('active');
+  document.getElementById(name+'Screen').classList.add('active');document.getElementById(name+'Screen').scrollTop=0;
   document.getElementById('nav-'+name).classList.add('active');
   if(name==='home')await renderHome();
   else if(name==='train')await renderTrain();
@@ -1355,5 +1358,6 @@ async function init(){
 }
 init();
 </script>
+<script>(function(){var fix=function(){try{window.scrollTo(0,0);document.body.scrollTop=0;document.documentElement.scrollTop=0;}catch(e){}};document.addEventListener('focusout',function(){setTimeout(fix,60);});if(window.visualViewport){visualViewport.addEventListener('resize',function(){if(visualViewport.height>=window.innerHeight-1)fix();});}})();</script>
 </body>
 </html>
